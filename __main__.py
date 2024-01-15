@@ -1,106 +1,26 @@
-from itertools import cycle
-from os import listdir
+import asyncio
+import os
 
-import discord
-from discord.ext import commands, tasks
+from Core.HezaBot import HezaBot
 
-import settings
-from Modules.DB import DB
+bot = HezaBot()
 
 
-intents = discord.Intents.all()
-intents.members = True
-bot = commands.Bot(command_prefix=settings.COMMAND_PREFIX, intents=intents, help_command=None)
+async def start():
+    await bot.load_all_extensions()
+    await bot.start(os.getenv("TOKEN"))
 
 
-cogs_cache = []
-
-
-@bot.event
-async def on_ready():
-    print('------')
-    print(f'Logged in as {bot.user.name}#{bot.user.discriminator} (ID: {bot.user.id})')
-    print(f'Serving {len(bot.guilds)} guilds & {len(bot.users)} users')
-    print('------')
-
-    # MongoDB
-    DB().client  # Connect to MongoDB
-    print('------')
-
-
-status = cycle([
-    'Pythoning',
-    'Doing stuff...',
-    'Being a bot'
-])
-
-
-@tasks.loop(minutes=5)
-async def change_presence():
-    new_status = next(status)
-    await bot.change_presence(activity=discord.Game(new_status))
-    print('Status changed to ' + new_status)
-
-
-@change_presence.before_loop
-async def before_change_presence():
-    """Only runs once"""
-    await bot.wait_until_ready()
-
-
-@bot.check
-async def block_dms(ctx):
-    """Block commands in DMs"""
-    return ctx.guild is not None
-
-
-async def load_cogs():
-    import time
-    start_time = time.time()
-
-    print('------')
-    print('Loading cogs... (multi-threaded)')
-
-    for filename in listdir('./cogs'):
-        if filename.endswith('.py'):
-            print(f'Cog found: {filename[:-3]} ({round(time.time() - start_time, 2)} seconds)')
-            await bot.load_extension(f'cogs.{filename[:-3]}')
-            cogs_cache.append(filename[:-3])
-
-    print(f'Found {len(bot.cogs)} cogs in {round(time.time() - start_time, 2)} seconds')
-    print('------')
-
-
-async def unload_cogs():
-    import time
-    start_time = time.time()
-
-    cogs = 0
-
-    for cog in cogs_cache:
-        print(f'Cog unloaded: {cog} in {round(time.time() - start_time, 2)} seconds (cached)')
-        await bot.unload_extension(f'cogs.{cog}')
-        cogs += 1
-
-    print(f'Unloaded {cogs} cogs in {round(time.time() - start_time, 2)} seconds (cached)')
+async def close():
+    await bot.close()
 
 
 async def main():
-    change_presence.start()
-    await load_cogs()
-    await bot.start(settings.TOKEN)
-    
+    await start()
 
 if __name__ == '__main__':
-    import asyncio
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print('------')
-        print('KeyboardInterrupt')
-        print('------')
-        print('Unloading cogs...')
-        asyncio.run(unload_cogs())
-        print('------')
-        print('Closing bot...')
-        asyncio.run(bot.close())
+        print("KeyboardInterrupt detected")
+        asyncio.run(close())
