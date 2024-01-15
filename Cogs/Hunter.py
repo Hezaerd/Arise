@@ -4,6 +4,7 @@ import discord
 from discord.ext import commands
 
 from Core.Logger import Logger
+from Tools.Emoji import Classes
 
 
 class Hunter(commands.Cog):
@@ -48,6 +49,25 @@ class Hunter(commands.Cog):
 
         embed.colour = discord.Colour.purple()
         embed.description = f"Welcome to the beautiful world of hunters :white_check_mark:"
+        await ctx.reply(embed=embed)
+
+    @hunter.command(
+        name="classes",
+        usage=">hunter classes",
+    )
+    async def classes(self, ctx):
+        embed = discord.Embed(title="Available classes")
+        embed.colour = discord.Colour.purple()
+        embed.set_footer(text=f"Requested by {ctx.author.name}", icon_url=ctx.author.avatar)
+        embed.timestamp = ctx.message.created_at
+
+        embed.add_field(name=f"{Classes['Assassin']} Assassin", value="todo", inline=False)
+        embed.add_field(name=f"{Classes['Fighter']} Fighter", value="todo", inline=False)
+        embed.add_field(name=f"{Classes['Healer']} Healer", value="todo", inline=False)
+        embed.add_field(name=f"{Classes['Mage']} Mage", value="todo", inline=False)
+        embed.add_field(name=f"{Classes['Ranger']} Ranger", value="todo", inline=False)
+        embed.add_field(name=f"{Classes['Tank']} Tank", value="todo", inline=False)
+
         await ctx.reply(embed=embed)
 
 
