@@ -3,6 +3,7 @@ from discord.ext import commands
 import os
 
 from Core.Logger import Logger
+from Core.DataBase import DataBase
 
 
 class HezaBot(commands.Bot):
@@ -10,6 +11,7 @@ class HezaBot(commands.Bot):
         super().__init__(command_prefix=">", intents=discord.Intents.all(), help_command=None)
 
         self.logger = Logger()
+        self.db = DataBase().client.heza
 
     async def start(self, token: str, *, reconnect: bool = True) -> None:
         """Starts the bot"""
