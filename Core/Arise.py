@@ -13,7 +13,7 @@ class Arise(commands.Bot):
         super().__init__(command_prefix=">", intents=discord.Intents.all(), help_command=None)
 
         self.logger = Logger()
-        self.db = DataBase().client.heza
+        self.db = DataBase().client.Arise
 
         self.statuses = cycle([
             "Farming xp",
