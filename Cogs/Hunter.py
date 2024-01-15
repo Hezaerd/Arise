@@ -7,6 +7,7 @@ from Enums.EClasses import EClasses
 
 from Core.Logger import Logger
 from Tools.Emoji import Classes
+from Tools.Emoji import Stats
 
 
 class Hunter(commands.Cog):
@@ -170,37 +171,75 @@ class Hunter(commands.Cog):
         aliases=["p"],
         usage=">hunter profile",
     )
-    async def profile(self, ctx, member: discord.Member = None):
-        if not member:
-            member = ctx.author
-
+    async def profile(self, ctx, page: int = 1):
         embed = discord.Embed(title="Profile")
         embed.colour = discord.Colour.purple()
         embed.set_footer(text=f"{ctx.author.name}", icon_url=ctx.author.avatar)
         embed.timestamp = ctx.message.created_at
 
         # Check if user is registered
-        if not self.bot.db.hunters.find_one({"_id": member.id}):
-            # check if user is author or not
+        if not self.bot.db.hunters.find_one({"_id": ctx.author.id}):
             embed.colour = discord.Colour.red()
-            if member == ctx.author:
-                embed.description = "You are not a hunter!\n" \
-                                    "Use `>hunter awake` to become a hunter!"
-                await ctx.reply(embed=embed)
-                return
+            embed.description = "You are not a hunter!\n" \
+                                "Use `>hunter awake` to become a hunter!"
+            await ctx.reply(embed=embed)
+            return
+
+        if page == 1:
+            embed.title = "Profile"
+
+            # Get user
+            user = self.bot.db.hunters.find_one({"_id": ctx.author.id})
+            # Get class
+            if user["class"]:
+                embed.add_field(name="Class", value=f"{Classes[user['class']]} {user['class']}")
             else:
-                embed.description = f"{member.mention} is not a hunter!"
-                await ctx.reply(embed=embed)
-                return
+                embed.add_field(name="Class", value="None")
 
-        # Get user
-        user = self.bot.db.hunters.find_one({"_id": ctx.author.id})
+            # Get level & xp
+            level = self.bot.db.hunters.xp.find_one({"_id": ctx.author.id})["level"]
+            xp = self.bot.db.hunters.xp.find_one({"_id": ctx.author.id})["xp"]
+            embed.add_field(name=f"Level - {level}", value=f"{xp}xp")
 
-        # Get class
-        if user["class"]:
-            embed.add_field(name="Class", value=f"{Classes[user['class']]} {user['class']}")
-        else:
-            embed.add_field(name="Class", value="None")
+        if page == 2:
+            # display stats
+            embed.title = "Stats"
+
+            # Get states
+            stats = self.bot.db.hunters.states.find_one({"_id": ctx.author.id})
+
+            # Get stats
+            max_health = stats["max_health"]
+            health = stats["health"]
+
+            max_mana = stats["max_mana"]
+            mana = stats["mana"]
+
+            defence = stats["defence"]
+            magic_resistance = stats["magic_resistance"]
+
+            strength = stats["strength"]
+            intelligence = stats["intelligence"]
+
+            agility = stats["agility"]
+            luck = stats["luck"]
+
+            # Display stats
+            embed.add_field(name=f"{Stats['HP']} HP", value=f"{health}/{max_health}")
+            embed.add_field(name=f"{Stats['MP']} MP", value=f"{mana}/{max_mana}")
+            embed.add_field(name="", value="", inline=False)
+
+            embed.add_field(name=f"{Stats['DEF']} DEF", value=f"{defence}")
+            embed.add_field(name=f"{Stats['MR']} MR", value=f"{magic_resistance}")
+            embed.add_field(name="", value="", inline=False)
+
+            embed.add_field(name=f"{Stats['STR']} STR", value=f"{strength}")
+            embed.add_field(name=f"{Stats['INT']} INT", value=f"{intelligence}")
+            embed.add_field(name="", value="", inline=False)
+
+            embed.add_field(name=f"{Stats['AGI']} AGI", value=f"{agility}")
+            embed.add_field(name=f"{Stats['LUK']} LUK", value=f"{luck}")
+            embed.add_field(name="", value="", inline=False)
 
         await ctx.reply(embed=embed)
 
