@@ -20,7 +20,7 @@ class Hunter(commands.Cog):
 
     @commands.hybrid_group(
         name="hunter",
-        aliases=["p"],
+        aliases=["h"],
         usage=">hunter <subcommand>",
         invoke_without_command=False
     )
@@ -28,16 +28,17 @@ class Hunter(commands.Cog):
         pass
 
     @hunter.command(
-        name="register",
-        aliases=["reg", "r"],
+        name="awake",
+        aliases=["register"],
     )
-    async def register(self, ctx):
+    async def awake(self, ctx):
 
-        embed = discord.Embed(title="Register")
+        embed = discord.Embed(title="Awake")
+        embed.set_footer(text=f"Requested by {ctx.author.name}", icon_url=ctx.author.avatar_url)
 
         if self.bot.db.players.find_one({"_id": ctx.author.id}):
             embed.colour = discord.Colour.red()
-            embed.description = "You are already registered"
+            embed.description = "You are already a hunter! :x:"
             return await ctx.reply(embed=embed)
 
         self.bot.db.players.insert_one({
@@ -45,8 +46,8 @@ class Hunter(commands.Cog):
             "name": ctx.author.name,
         })
 
-        embed.colour = discord.Colour.green()
-        embed.description = f"Successfully registered! :white_check_mark:"
+        embed.colour = discord.Colour.purple()
+        embed.description = f"Welcome to the beautiful world of hunters :white_check_mark:"
         await ctx.reply(embed=embed)
 
 
