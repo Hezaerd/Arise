@@ -6,7 +6,7 @@ from Core.Logger import Logger
 from Core.DataBase import DataBase
 
 
-class HezaBot(commands.Bot):
+class Arise(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix=">", intents=discord.Intents.all(), help_command=None)
 

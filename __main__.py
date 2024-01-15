@@ -1,9 +1,9 @@
 import asyncio
 import os
 
-from Core.HezaBot import HezaBot
+from Core.Arise import Arise
 
-bot = HezaBot()
+bot = Arise()
 
 
 async def start():
