@@ -7,7 +7,6 @@ bot = Arise()
 
 
 async def start():
-    await bot.load_all_extensions()
     await bot.start(os.getenv("TOKEN"))
 
 

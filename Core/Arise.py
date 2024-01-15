@@ -1,6 +1,8 @@
-import discord
-from discord.ext import commands
 import os
+from itertools import cycle
+
+import discord
+from discord.ext import commands, tasks
 
 from Core.Logger import Logger
 from Core.DataBase import DataBase
@@ -13,8 +15,17 @@ class Arise(commands.Bot):
         self.logger = Logger()
         self.db = DataBase().client.heza
 
+        self.statuses = cycle([
+            "Farming xp",
+            "Opening gate",
+            "Hunting",
+            "Selling items"
+        ])
+
     async def start(self, token: str, *, reconnect: bool = True) -> None:
         """Starts the bot"""
+        self.change_status.start()
+        await self.load_all_extensions()
         await super().start(token, reconnect=reconnect)
 
     async def close(self) -> None:
@@ -46,3 +57,15 @@ class Arise(commands.Bot):
         await self.unload_all_extensions()
         await self.load_all_extensions()
         self.logger.info("Core", "Reloaded all extensions")
+
+    @tasks.loop(minutes=5)
+    async def change_status(self) -> None:
+        """Changes the status of the bot"""
+        newStatus: str = next(self.statuses)
+        await self.change_presence(activity=discord.Game(name=newStatus))
+        self.logger.trace("Core", f"Changed status to {newStatus}")
+
+    @change_status.before_loop
+    async def before_change_status(self) -> None:
+        """Waits until the bot is ready"""
+        await self.wait_until_ready()
