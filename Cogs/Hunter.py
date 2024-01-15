@@ -79,6 +79,55 @@ class Hunter(commands.Cog):
 
         await ctx.reply(embed=embed)
 
+    @hunter.command(
+        name="class",
+        usage=">hunter class <class>",
+    )
+    async def choose_class(self, ctx, choice: str):
+        embed = discord.Embed(title="Choose a class")
+        embed.colour = discord.Colour.purple()
+        embed.set_footer(text=f"{ctx.author.name}", icon_url=ctx.author.avatar)
+        embed.timestamp = ctx.message.created_at
+
+        # Check if user is registered
+        if not self.bot.db.hunters.find_one({"_id": ctx.author.id}):
+            embed.colour = discord.Colour.red()
+            embed.description = "You are not a hunter!\n" \
+                                "Use `>hunter awake` to become a hunter!"
+            await ctx.reply(embed=embed)
+            return
+
+        # Check if user already has a class (and if cooldown is over)
+        if self.bot.db.hunters.find_one({"_id": ctx.author.id})["class"]:
+            is_on_cooldown = self.bot.db.hunters.find_one({"_id": ctx.author.id})["class_change_cooldown"] > time.time()
+
+            if is_on_cooldown:
+                embed.colour = discord.Colour.red()
+                embed.description = "You already have a class!\n" \
+                                    "You can change your class once a week!\n" \
+                                    f"Next change available <t:{int(self.bot.db.hunters.find_one({'_id': ctx.author.id})['class_change_cooldown'])}:R>"
+                await ctx.reply(embed=embed)
+                return
+
+        # Check if choice is valid
+        if choice not in EClasses.__members__:
+            embed.colour = discord.Colour.red()
+            embed.description = "Invalid class!\n" \
+                                "Use `>hunter classes` to see available classes!"
+            await ctx.reply(embed=embed)
+            return
+
+        # Set class
+        self.bot.db.hunters.update_one({"_id": ctx.author.id}, {"$set": {"class": choice}})
+
+        # Set class_change_cooldown (1 week)
+        self.bot.db.hunters.update_one({"_id": ctx.author.id},
+                                       {"$set": {"class_change_cooldown": time.time() + 604800}})
+
+        embed.colour = discord.Colour.green()
+        embed.description = f"You are now a {choice}!"
+        await ctx.reply(embed=embed)
+
 
 async def setup(bot):
     await bot.add_cog(Hunter(bot))
