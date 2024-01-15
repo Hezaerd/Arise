@@ -131,20 +131,31 @@ class Hunter(commands.Cog):
 
     @hunter.command(
         name="profile",
+        aliases=["p"],
+        usage=">hunter profile",
     )
-    async def profile(self, ctx):
+    async def profile(self, ctx, member: discord.Member = None):
+        if not member:
+            member = ctx.author
+
         embed = discord.Embed(title="Profile")
         embed.colour = discord.Colour.purple()
         embed.set_footer(text=f"{ctx.author.name}", icon_url=ctx.author.avatar)
         embed.timestamp = ctx.message.created_at
 
         # Check if user is registered
-        if not self.bot.db.hunters.find_one({"_id": ctx.author.id}):
+        if not self.bot.db.hunters.find_one({"_id": member.id}):
+            # check if user is author or not
             embed.colour = discord.Colour.red()
-            embed.description = "You are not a hunter!\n" \
-                                "Use `>hunter awake` to become a hunter!"
-            await ctx.reply(embed=embed)
-            return
+            if member == ctx.author:
+                embed.description = "You are not a hunter!\n" \
+                                    "Use `>hunter awake` to become a hunter!"
+                await ctx.reply(embed=embed)
+                return
+            else:
+                embed.description = f"{member.mention} is not a hunter!"
+                await ctx.reply(embed=embed)
+                return
 
         # Get user
         user = self.bot.db.hunters.find_one({"_id": ctx.author.id})
@@ -156,6 +167,7 @@ class Hunter(commands.Cog):
             embed.add_field(name="Class", value="None")
 
         await ctx.reply(embed=embed)
+
 
 async def setup(bot):
     await bot.add_cog(Hunter(bot))
