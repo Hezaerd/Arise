@@ -61,9 +61,9 @@ class Arise(commands.Bot):
     @tasks.loop(minutes=5)
     async def change_status(self) -> None:
         """Changes the status of the bot"""
-        newStatus: str = next(self.statuses)
-        await self.change_presence(activity=discord.Game(name=newStatus))
-        self.logger.trace("Core", f"Changed status to {newStatus}")
+        new_status: str = next(self.statuses)
+        await self.change_presence(activity=discord.Game(name=new_status))
+        self.logger.trace("Core", f"Changed status to {new_status}")
 
     @change_status.before_loop
     async def before_change_status(self) -> None:
