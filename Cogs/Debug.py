@@ -62,6 +62,28 @@ class Debug(commands.Cog):
 
         await ctx.send(embed=embed)
 
+    @commands.command(
+        name="reload",
+        aliases=["rl"],
+        usage=">reload <cog>",
+        invoke_without_command=True
+    )
+    @commands.is_owner()
+    async def reload(self, ctx: Context, cog: str):
+        cog = cog.capitalize()
+
+        embed = discord.Embed(title="Reload")
+
+        try:
+            await ctx.bot.reload_extension(f"Cogs.{cog}")
+            embed.colour = discord.Colour.green()
+            embed.description = f"Reloaded {cog}"
+        except commands.ExtensionNotLoaded:
+            embed.colour = discord.Colour.red()
+            embed.description = f"{cog} is not loaded"
+
+        await ctx.reply(embed=embed)
+
 
 async def setup(bot):
     await bot.add_cog(Debug(bot))
