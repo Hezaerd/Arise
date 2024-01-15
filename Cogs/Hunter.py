@@ -50,10 +50,46 @@ class Hunter(commands.Cog):
         self.bot.db.hunters.insert_one({
             "_id": ctx.author.id,
             "class": None,
+
+        })
+
+        self.bot.db.hunters.xp.insert_one({
+            "_id": ctx.author.id,
+            "level": 1,
+            "xp": 0,
+        })
+
+        self.bot.db.hunters.states.insert_one({
+            "_id": ctx.author.id,
+            # Life
+            "max_health": 10,
+            "health": 10,
+            # Mana
+            "max_mana": 2,
+            "mana": 2,
+            # Resistances
+            "defence": 0,
+            "magic_resistance": 0,
+            # Damage
+            "strength": 1,
+            "intelligence": 0,
+            # Secondary stats
+            "agility": 0,
+            "luck": 0,
+        })
+
+        self.bot.db.hunters.inventory.insert_one({
+            "_id": ctx.author.id,
+            "items": [],
+            "weapons": [],
+            "armors": [],
+            "potions": [],
+            "spells": [],
         })
 
         embed.colour = discord.Colour.green()
-        embed.description = "You are now a hunter!\n" \
+        embed.description = "Welcome to the hunter society!\n" \
+                            "You are now a hunter!\n" \
                             "Use `>hunter classes` to see available classes!."
 
         await ctx.reply(embed=embed)
