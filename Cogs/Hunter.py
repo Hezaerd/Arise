@@ -8,6 +8,7 @@ from Enums.EClasses import EClasses
 from Tools.Emoji import Classes
 from Tools.Emoji import Stats
 from Tools.Emoji import Levels
+from Tools.Numerize import numerize
 
 from UI.Views.Profile import PageView
 
@@ -137,10 +138,12 @@ class Hunter(commands.Cog):
             is_on_cooldown = self.bot.db.hunters.find_one({"_id": ctx.author.id})["class_change_cooldown"] > time.time()
 
             if is_on_cooldown:
+                timestamp = f"<t:{int(self.bot.db.hunters.find_one({'_id': ctx.author.id})['class_change_cooldown'])}:R>"
+
                 embed.colour = discord.Colour.red()
                 embed.description = "You already have a class!\n" \
                                     "You can change your class once a week!\n" \
-                                    f"Next change available <t:{int(self.bot.db.hunters.find_one({'_id': ctx.author.id})['class_change_cooldown'])}:R>"
+                                    f"Next change available {timestamp}"
                 await ctx.reply(embed=embed)
                 return
 
@@ -195,27 +198,26 @@ class Hunter(commands.Cog):
         stats.colour = discord.Colour.pink()
         stats.set_footer(text="Last update")
         stats.timestamp = ctx.message.created_at
-        stats.add_field(name=f"{Stats['HP']} HP", value=f"{user_stats['health']} / {user_stats['max_health']}")
-        stats.add_field(name=f"{Stats['MP']} MP", value=f"{user_stats['mana']} / {user_stats['max_mana']}")
+        stats.add_field(name=f"{Stats['HP']} HP", value=f"{(numerize(user_stats['health']))} / {numerize(user_stats['max_health'])}")
+        stats.add_field(name=f"{Stats['MP']} MP", value=f"{(user_stats['mana'])} / {(user_stats['max_mana'])}")
         stats.add_field(name="", value="", inline=False)
 
-        stats.add_field(name=f"{Stats['DEF']} DEF", value=f"{user_stats['defence']}")
-        stats.add_field(name=f"{Stats['MR']} MR", value=f"{user_stats['magic_resistance']}")
+        stats.add_field(name=f"{Stats['DEF']} DEF", value=f"{numerize(user_stats['defence'])}")
+        stats.add_field(name=f"{Stats['MR']} MR", value=f"{numerize(user_stats['magic_resistance'])}")
         stats.add_field(name="", value="", inline=False)
 
-        stats.add_field(name=f"{Stats['STR']} STR", value=f"{user_stats['strength']}")
-        stats.add_field(name=f"{Stats['INT']} INT", value=f"{user_stats['intelligence']}")
+        stats.add_field(name=f"{Stats['STR']} STR", value=f"{numerize(user_stats['strength'])}")
+        stats.add_field(name=f"{Stats['INT']} INT", value=f"{numerize(user_stats['intelligence'])}")
         stats.add_field(name="", value="", inline=False)
 
-        stats.add_field(name=f"{Stats['AGI']} AGI", value=f"{user_stats['agility']}")
-        stats.add_field(name=f"{Stats['LUK']} LUK", value=f"{user_stats['luck']}")
+        stats.add_field(name=f"{Stats['AGI']} AGI", value=f"{numerize(user_stats['agility'])}")
+        stats.add_field(name=f"{Stats['LUK']} LUK", value=f"{numerize(user_stats['luck'])}")
         stats.add_field(name="", value="", inline=False)
 
         embeds = [profile, stats]
 
         async with ctx.typing():
             await ctx.reply(embed=profile, view=PageView(embeds, ctx, self.bot))
-
 
 
 async def setup(bot):
