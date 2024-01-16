@@ -5,9 +5,11 @@ from discord.ext import commands
 
 from Enums.EClasses import EClasses
 
-from Core.Logger import Logger
 from Tools.Emoji import Classes
 from Tools.Emoji import Stats
+from Tools.Emoji import Levels
+
+from UI.Views.Profile import PageView
 
 
 class Hunter(commands.Cog):
@@ -50,17 +52,13 @@ class Hunter(commands.Cog):
         # Register user
         self.bot.db.hunters.insert_one({
             "_id": ctx.author.id,
+            "name": ctx.author.name,
             "class": None,
-
-        })
-
-        self.bot.db.hunters.xp.insert_one({
-            "_id": ctx.author.id,
             "level": 1,
             "xp": 0,
         })
 
-        self.bot.db.hunters.states.insert_one({
+        self.bot.db.hunters.stats.insert_one({
             "_id": ctx.author.id,
             # Life
             "max_health": 10,
@@ -171,77 +169,53 @@ class Hunter(commands.Cog):
         aliases=["p"],
         usage=">hunter profile",
     )
-    async def profile(self, ctx, page: int = 1):
-        embed = discord.Embed(title="Profile")
-        embed.colour = discord.Colour.purple()
-        embed.set_footer(text=f"{ctx.author.name}", icon_url=ctx.author.avatar)
-        embed.timestamp = ctx.message.created_at
+    async def profile(self, ctx):
+        user = self.bot.db.hunters.find_one({"_id": ctx.author.id})
+        user_stats = self.bot.db.hunters.stats.find_one({"_id": ctx.author.id})
 
-        # Check if user is registered
-        if not self.bot.db.hunters.find_one({"_id": ctx.author.id}):
+        if user is None:
+            embed = discord.Embed(title="Error")
             embed.colour = discord.Colour.red()
-            embed.description = "You are not a hunter!\n" \
-                                "Use `>hunter awake` to become a hunter!"
+            embed.description = "You are not a hunter!"
+            embed.add_field(name="Search how to become a hunter?", value="`>hunter awake` to join the hunter society!")
             await ctx.reply(embed=embed)
             return
 
-        if page == 1:
-            embed.title = "Profile"
+        profile = discord.Embed(title=":bust_in_silhouette: Profile")
+        profile.set_thumbnail(url=ctx.author.avatar)
+        profile.colour = discord.Colour.purple()
+        profile.set_footer(text="Last update")
+        profile.timestamp = ctx.message.created_at
+        profile.add_field(name=f"Class - {Classes[user['class']]}", value=f"{user['class']}", inline=False)
+        profile.add_field(name=f"Level - {Levels['LVL']}", value=f"{user['level']}", inline=True)
+        profile.add_field(name=f"XP - {Levels['XP']}", value=f"{user['xp']}")
 
-            # Get user
-            user = self.bot.db.hunters.find_one({"_id": ctx.author.id})
-            # Get class
-            if user["class"]:
-                embed.add_field(name="Class", value=f"{Classes[user['class']]} {user['class']}")
-            else:
-                embed.add_field(name="Class", value="None")
+        stats = discord.Embed(title=":bar_chart: Stats")
+        stats.set_thumbnail(url=ctx.author.avatar)
+        stats.colour = discord.Colour.pink()
+        stats.set_footer(text="Last update")
+        stats.timestamp = ctx.message.created_at
+        stats.add_field(name=f"{Stats['HP']} HP", value=f"{user_stats['health']} / {user_stats['max_health']}")
+        stats.add_field(name=f"{Stats['MP']} MP", value=f"{user_stats['mana']} / {user_stats['max_mana']}")
+        stats.add_field(name="", value="", inline=False)
 
-            # Get level & xp
-            level = self.bot.db.hunters.xp.find_one({"_id": ctx.author.id})["level"]
-            xp = self.bot.db.hunters.xp.find_one({"_id": ctx.author.id})["xp"]
-            embed.add_field(name=f"Level - {level}", value=f"{xp}xp")
+        stats.add_field(name=f"{Stats['DEF']} DEF", value=f"{user_stats['defence']}")
+        stats.add_field(name=f"{Stats['MR']} MR", value=f"{user_stats['magic_resistance']}")
+        stats.add_field(name="", value="", inline=False)
 
-        if page == 2:
-            # display stats
-            embed.title = "Stats"
+        stats.add_field(name=f"{Stats['STR']} STR", value=f"{user_stats['strength']}")
+        stats.add_field(name=f"{Stats['INT']} INT", value=f"{user_stats['intelligence']}")
+        stats.add_field(name="", value="", inline=False)
 
-            # Get states
-            stats = self.bot.db.hunters.states.find_one({"_id": ctx.author.id})
+        stats.add_field(name=f"{Stats['AGI']} AGI", value=f"{user_stats['agility']}")
+        stats.add_field(name=f"{Stats['LUK']} LUK", value=f"{user_stats['luck']}")
+        stats.add_field(name="", value="", inline=False)
 
-            # Get stats
-            max_health = stats["max_health"]
-            health = stats["health"]
+        embeds = [profile, stats]
 
-            max_mana = stats["max_mana"]
-            mana = stats["mana"]
+        async with ctx.typing():
+            await ctx.reply(embed=profile, view=PageView(embeds, ctx, self.bot))
 
-            defence = stats["defence"]
-            magic_resistance = stats["magic_resistance"]
-
-            strength = stats["strength"]
-            intelligence = stats["intelligence"]
-
-            agility = stats["agility"]
-            luck = stats["luck"]
-
-            # Display stats
-            embed.add_field(name=f"{Stats['HP']} HP", value=f"{health}/{max_health}")
-            embed.add_field(name=f"{Stats['MP']} MP", value=f"{mana}/{max_mana}")
-            embed.add_field(name="", value="", inline=False)
-
-            embed.add_field(name=f"{Stats['DEF']} DEF", value=f"{defence}")
-            embed.add_field(name=f"{Stats['MR']} MR", value=f"{magic_resistance}")
-            embed.add_field(name="", value="", inline=False)
-
-            embed.add_field(name=f"{Stats['STR']} STR", value=f"{strength}")
-            embed.add_field(name=f"{Stats['INT']} INT", value=f"{intelligence}")
-            embed.add_field(name="", value="", inline=False)
-
-            embed.add_field(name=f"{Stats['AGI']} AGI", value=f"{agility}")
-            embed.add_field(name=f"{Stats['LUK']} LUK", value=f"{luck}")
-            embed.add_field(name="", value="", inline=False)
-
-        await ctx.reply(embed=embed)
 
 
 async def setup(bot):
