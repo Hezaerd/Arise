@@ -43,15 +43,16 @@ class Hunter(commands.Cog):
         embed = discord.Embed(title="Awake")
         embed.set_footer(text=f"{ctx.author.name}", icon_url=ctx.author.avatar)
 
-        # Check if user is already registered
-        if self.bot.db.hunters.find_one({"_id": ctx.author.id}):
+        user = self.bot.db.profiles.find_one({"_id": ctx.author.id})
+
+        if user is not None:
             embed.colour = discord.Colour.red()
-            embed.description = "You are already a hunter!"
+            embed.description = "You are already part of the hunter society!"
             await ctx.reply(embed=embed)
             return
 
-        # Register user
-        self.bot.db.hunters.insert_one({
+        # Create user profile in database
+        self.bot.db.profiles.insert_one({
             "_id": ctx.author.id,
             "name": ctx.author.name,
             "class": None,
@@ -59,7 +60,8 @@ class Hunter(commands.Cog):
             "xp": 0,
         })
 
-        self.bot.db.hunters.stats.insert_one({
+        # Create user stats in database
+        self.bot.db.stats.insert_one({
             "_id": ctx.author.id,
             # Life
             "max_health": 10,
@@ -76,15 +78,6 @@ class Hunter(commands.Cog):
             # Secondary stats
             "agility": 0,
             "luck": 0,
-        })
-
-        self.bot.db.hunters.inventory.insert_one({
-            "_id": ctx.author.id,
-            "items": [],
-            "weapons": [],
-            "armors": [],
-            "potions": [],
-            "spells": [],
         })
 
         embed.colour = discord.Colour.green()
@@ -125,47 +118,57 @@ class Hunter(commands.Cog):
         embed.set_footer(text=f"{ctx.author.name}", icon_url=ctx.author.avatar)
         embed.timestamp = ctx.message.created_at
 
+        user = self.bot.db.profiles.find_one({"_id": ctx.author.id})
+
         # Check if user is registered
-        if not self.bot.db.hunters.find_one({"_id": ctx.author.id}):
+        if user is None:
             embed.colour = discord.Colour.red()
             embed.description = "You are not a hunter!\n" \
-                                "Use `>hunter awake` to become a hunter!"
-            await ctx.reply(embed=embed)
+                                "Use `>hunter awake` to register yourself as a hunter!"
+
+            async with ctx.typing():
+                await ctx.reply(embed=embed)
             return
 
-        # Check if user already has a class (and if cooldown is over)
-        if self.bot.db.hunters.find_one({"_id": ctx.author.id})["class"]:
-            is_on_cooldown = self.bot.db.hunters.find_one({"_id": ctx.author.id})["class_change_cooldown"] > time.time()
+        # Check if user already has a class
+        if user["class"] is not None:
+            is_on_cd = self.bot.db.profiles.find_one({"_id": ctx.author.id})["class_cooldown"] > time.time()
 
-            if is_on_cooldown:
-                timestamp = f"<t:{int(self.bot.db.hunters.find_one({'_id': ctx.author.id})['class_change_cooldown'])}:R>"
+            if is_on_cd:
+                timestamp = f"<t:{int(self.bot.db.profiles.find_one({'_id': ctx.author.id})['class_cooldown'])}:R>"
 
+                embed.title = "Uh oh!"
                 embed.colour = discord.Colour.red()
                 embed.description = "You already have a class!\n" \
                                     "You can change your class once a week!\n" \
-                                    f"Next change available {timestamp}"
-                await ctx.reply(embed=embed)
+                                    f"Your next change will be available {timestamp}"
+
+                async with ctx.typing():
+                    await ctx.reply(embed=embed)
                 return
 
-        # Check if choice is valid
+        # Capitalize choice
+        choice = choice.capitalize()
+
+        # Check if choice is valid (in EClasses without cases)
         if choice not in EClasses.__members__:
             embed.colour = discord.Colour.red()
-            embed.description = "Invalid class!\n" \
+            embed.description = "This class doesn't!\n" \
                                 "Use `>hunter classes` to see available classes!"
-            await ctx.reply(embed=embed)
+
+            async with ctx.typing():
+                await ctx.reply(embed=embed)
             return
 
-        # Set class
-        self.bot.db.hunters.update_one({"_id": ctx.author.id}, {"$set": {"class": choice}})
-
-        # Set class_change_cooldown (1 week)
-        self.bot.db.hunters.update_one({"_id": ctx.author.id},
-                                       {"$set": {"class_change_cooldown": time.time() + 604800}})
+        # Update user class
+        self.bot.db.profiles.update_one({"_id": ctx.author.id}, {"$set": {"class": choice}})
+        self.bot.db.profiles.update_one({"_id": ctx.author.id}, {"$set": {"class_cooldown": time.time() + 604800}})
 
         embed.colour = discord.Colour.green()
         embed.description = f"You are now a {choice}!"
-        await ctx.reply(embed=embed)
 
+        async with ctx.typing():
+            await ctx.reply(embed=embed)
 
     @hunter.command(
         name="profile",
@@ -173,15 +176,17 @@ class Hunter(commands.Cog):
         usage=">hunter profile",
     )
     async def profile(self, ctx):
-        user = self.bot.db.hunters.find_one({"_id": ctx.author.id})
-        user_stats = self.bot.db.hunters.stats.find_one({"_id": ctx.author.id})
+        user = self.bot.db.profiles.find_one({"_id": ctx.author.id})
+        user_stats = self.bot.db.stats.find_one({"_id": ctx.author.id})
 
         if user is None:
             embed = discord.Embed(title="Error")
             embed.colour = discord.Colour.red()
             embed.description = "You are not a hunter!"
             embed.add_field(name="Search how to become a hunter?", value="`>hunter awake` to join the hunter society!")
-            await ctx.reply(embed=embed)
+
+            async with ctx.typing():
+                await ctx.reply(embed=embed)
             return
 
         profile = discord.Embed(title=":bust_in_silhouette: Profile")

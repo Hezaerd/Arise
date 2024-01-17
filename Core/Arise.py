@@ -13,7 +13,7 @@ class Arise(commands.Bot):
         super().__init__(command_prefix=">", intents=discord.Intents.all(), help_command=None)
 
         self.logger = Logger()
-        self.db = DataBase().client.Arise
+        self.db = DataBase().client.hunters
 
         self.statuses = cycle([
             "Farming xp",
@@ -69,3 +69,4 @@ class Arise(commands.Bot):
     async def before_change_status(self) -> None:
         """Waits until the bot is ready"""
         await self.wait_until_ready()
+        self.logger.trace("Core", "Started changing status")
